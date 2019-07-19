@@ -9,6 +9,7 @@ import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 import picocli.CommandLine.*
 import seq2seq.data.loadDataFromFolder
+import seq2seq.data.locationFile
 import java.io.IOException
 
 
@@ -45,7 +46,7 @@ class PredictCommand: Runnable {
 
         val normalizer = restoreDataNormalizer(inputNormalizer)
         setIntersetPredictList(normalizer.list)
-        val dataset = loadDataFromFolder(inputDirectory, ts, inputNormalizer, true)
+        val dataset = loadDataFromFolder(inputDirectory, ts, true)
 
 
         val model = MultiLayerNetwork.load(inputModel, false)
@@ -70,7 +71,7 @@ class PredictCommand: Runnable {
                 } else {
                     value = d
                 }
-                it.write(intersectArray[index][0] + "|" + intersectArray[index][1] + "|" + (value.times(normalizer.stdArray.last())).plus(normalizer.mean.last()).toString())
+                it.write(locationFile[0][index][0] + "|" + locationFile[0][index][1] + "|" + (value.times(normalizer.stdArray.last())).plus(normalizer.mean.last()).toString())
                 it.write("\n")
                 it.flush()
             }

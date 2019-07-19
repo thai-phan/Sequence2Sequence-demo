@@ -7,6 +7,8 @@ import java.util.function.Consumer
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+var dataNormalized: DataNormalizer = DataNormalizer()
+
 data class DataNormalizer(val mean: ArrayList<Double> = ArrayList(),
                           val stdArray: ArrayList<Double> = ArrayList(),
                           val list: MutableSet<ArrayList<String>> = mutableSetOf()): Serializable  {
@@ -19,7 +21,6 @@ data class DataNormalizer(val mean: ArrayList<Double> = ArrayList(),
 }
 
 fun normalizerDataSet(dataList: ArrayList<ArrayList<Double>>,
-                      normalizerFile: File,
                       isOutput: Boolean,
                       isPredict: Boolean): ArrayList<ArrayList<Double>> {
     val dataSize:Int = dataList.size;
@@ -59,8 +60,7 @@ fun normalizerDataSet(dataList: ArrayList<ArrayList<Double>>,
         }
     }
     if (isOutput && !isPredict) {
-        val data = DataNormalizer(meanArray, stdArray, getIntersetList())
-        data.save(normalizerFile)
+        dataNormalized = DataNormalizer(meanArray, stdArray, getIntersetList())
     }
     for (data in dataList) {
 

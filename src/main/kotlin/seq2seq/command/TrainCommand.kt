@@ -1,5 +1,6 @@
 package seq2seq.command
 
+import org.bytedeco.opencv.opencv_text.DoubleVector
 import kotlin.math.roundToInt
 import org.nd4j.evaluation.regression.RegressionEvaluation
 
@@ -10,6 +11,8 @@ import seq2seq.data.loadDataFromFolder
 import seq2seq.data.restoreDataNormalizer
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.nd4j.linalg.api.ndarray.BaseNDArray
+import seq2seq.data.DataNormalizer
+import seq2seq.data.dataNormalized
 import java.io.*
 
 private var intersectList: MutableSet<ArrayList<String>> = mutableSetOf();
@@ -21,13 +24,17 @@ fun setIntersetList(list: MutableSet<ArrayList<String>>) {
 fun getIntersetList(): MutableSet<ArrayList<String>> {
     return intersectList
 }
-//  train -in data outModel.bin outNormalize.bin
+
+
+
+//  train -in data outModel.bin outNormalize.bin -testRatio 0.4
 @CommandLine.Command(name = "train", description = ["Train"])
 class TrainCommand: Runnable {
     @Option(names = ["--help"], usageHelp = true, description = ["display this help and exit"])
     var help: Boolean = false
+
     @Option(names = ["-e"], description = ["number of epoch to train"], required = false)
-    private var epoch: Int = 50
+    private var epoch: Int = 1
 
     @Option(names = ["-ts"], description = ["number of time steps is used to predict one hour ahead"])
     private var ts: Int = 6
@@ -51,10 +58,10 @@ class TrainCommand: Runnable {
     private var lstmHiddenLayer: Int = 200
 
     @Option(names = ["-batchSize"], description = ["Batch size"], required = false)
-    private var batchSize: Int = 1
-
+    private var batchSize: Int = 150
+    //
     @Option(names = ["-miniBatchSize"], description = ["Mini Batch size"], required = false)
-    private var miniBatchSize: Int = 50
+    private var miniBatchSize: Int = 150
 
     @Option(names = ["-fullyConnLayer"], description = ["Fully Connected Layer"], required = false)
     private var fullyConnectedLayer = 128
@@ -69,8 +76,8 @@ class TrainCommand: Runnable {
     private lateinit var outputNormalizer: File
 
     override fun run() {
-        val dataset = loadDataFromFolder(inputDirectory, ts, outputNormalizer, false)
-        val listMiniBatch = dataset.batchBy(batchSize)
+        val dataset = loadDataFromFolder(inputDirectory, ts, false)
+        val listMiniBatch = dataset.batchBy(miniBatchSize)
         val trainSet = listMiniBatch.subList(0, (listMiniBatch.size * (1-testRatio)).roundToInt())
         val testSet = listMiniBatch.subList((listMiniBatch.size * (1-testRatio)).roundToInt(), listMiniBatch.size)
 
@@ -80,44 +87,47 @@ class TrainCommand: Runnable {
             for (trainMiniBatch in trainSet) {
                 model.fit(trainMiniBatch)
             }
-            println(model.score())
+            println(i.toString() + " / " + model.score())
         }
         model.save(outputModel)
-
+        dataNormalized.save(outputNormalizer)
         val eval = RegressionEvaluation()
 
+        val total: List<List<Double>> = listOf()
         for (testBatch in testSet) {
+            model.rnnClearPreviousState()
             val output = model.rnnTimeStep(testBatch.features)
+//            val result = ((output as Iterable<*>).first() as BaseNDArray).getColumn((ts -1).toLong()).toDoubleVector()
+//            val result = ((output as Iterable<*>).first() as BaseNDArray).toDoubleVector()
+            val result = output.toDoubleVector()
+//            total.plus(result.toList())
+
             eval.eval(output, testBatch.labels)
         }
-
         println(eval.stats())
+//        OutputStreamWriter(FileOutputStream("trainOutput.csv")).use {
+//            total.forEachIndexed {
+//                i, list ->
+//                    list.forEachIndexed { index, d ->
+//                        val value: Double
+//                        if (d < 0) {
+//                            value = -d
+//                        } else {
+//                            value = d
+//                        }
+//                        it.write((value.times(dataNormalized.stdArray.last())).plus(dataNormalized.mean.last()).toString())
+//                        it.write("\n")
+//
+//                    }
+//            }
+//            it.flush()
+//        }
+
+//                it.write((result.times(dataNormalized.stdArray.last())).plus(dataNormalized.mean.last()).toString())
+//                it.write("\n")
+//                it.flush()
 
         val a = File("stat.csv")
         a.writeText(eval.stats())
-
-
-//        val normalizer = restoreDataNormalizer(outputNormalizer)
-//        val model = MultiLayerNetwork.load(outputModel, false)
-//        val indResult = model.rnnTimeStep(testSet.last().features)
-//        val result = ((indResult as Iterable<*>).first() as BaseNDArray).getColumn((ts -1).toLong()).toDoubleVector()
-//
-//        val resultFile = File("result.csv")
-//        if (resultFile.exists()) {
-//            resultFile.delete()
-//            try {
-//                resultFile.createNewFile()
-//            } catch (e: IOException) {
-//                e.printStackTrace()
-//            }
-//        }
-//
-//        OutputStreamWriter(FileOutputStream(resultFile)).use {
-//            result.forEachIndexed { index, d ->
-//                it.write((d.times(normalizer.stdArray.last())).plus(normalizer.mean.last()).toString())
-//                it.write("\n")
-//                it.flush()
-//            }
-//        }
     }
 }

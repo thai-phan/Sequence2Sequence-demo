@@ -9,9 +9,6 @@ plugins {
 }
 
 val dl4jVersion = "1.0.0-beta4"
-val awsS3Version = "1.11.109"
-val picocliVersion = "3.9.3"
-val kotlinLoggerVersion = "1.6.22"
 
 repositories {
     // Use jcenter for resolving your dependencies.
@@ -31,14 +28,14 @@ dependencies {
     compile("org.slf4j", "slf4j-jdk14", "1.7.25")
     compile("org.deeplearning4j", "deeplearning4j-core", dl4jVersion)
 
-//    compile("org.nd4j", "nd4j-cuda-10.1-platform", dl4jVersion)
-    compile("org.nd4j", "nd4j-native-platform", dl4jVersion)
+    compile("org.nd4j", "nd4j-cuda-10.1-platform", dl4jVersion)
+//    compile("org.nd4j", "nd4j-native-platform", dl4jVersion)
 
     compile("software.amazon.awssdk", "s3", "2.3.8")
     compile("com.natpryce", "konfig", "1.6.10.0")
     runtime("org.jetbrains.kotlin", "kotlin-stdlib-jdk8", "1.3.41")
     compile("jfree", "jfreechart", "1.0.13")
-    compile("info.picocli", "picocli", picocliVersion)
+    compile("info.picocli", "picocli", "3.9.3")
     compile("org.jetbrains.kotlin", "kotlin-runtime", "1.2.71")
     compile("nl.dionsegijn", "konfetti", "1.1.2")
     compile(kotlin("stdlib-jdk8"))

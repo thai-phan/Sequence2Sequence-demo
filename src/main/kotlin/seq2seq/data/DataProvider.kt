@@ -69,25 +69,25 @@ fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean): Map<String, A
             val outputList: ArrayList<Double> = ArrayList()
 
             if (intersectList.contains(arrayListOf(list[2], list[3]))) {
-                locationList.add(list[2])
-                locationList.add(list[3])
-
                 list.forEachIndexed { indexItem, item ->
+                    locationList.add(item)
                     if (indexItem in 4..9) {
                         inputList.add(item.toDouble())
                     }
-                    if (indexItem in 5..10) {
+                    if (indexItem == 10) {
                         outputList.add(item.toDouble())
                     }
                 }
+                inputLists.add(inputList);
+                outputLists.add(outputList);
+                locationLists.add(locationList)
             } else {
-                count++
+                count = count + 1
             }
-            inputLists.add(inputList);
-            outputLists.add(outputList);
-            locationLists.add(locationList)
+
         }
-        print("asdas" + count)
+//        println(count.toString() + "/" + inputLists.size + "/" + outputLists.size)
+
         inputFile.add(inputLists)
         outputFile.add(outputLists)
         locationFile.add(locationLists)
@@ -116,39 +116,37 @@ fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean): Map<String, A
 //    }
 //}
 
-fun loadDataFromFolder(location: File, timeStep: Int, normalizerFile: File, isPredict: Boolean): DataSet  {
+fun loadDataFromFolder(location: File, timeStep: Int, isPredict: Boolean): DataSet  {
     val files = location.listFiles()
         .filter{ it.name.toLowerCase().endsWith(".csv") }
         .sortedBy { it.name }
-    return toDataSet(parseCSVtoMatrixObject(files, isPredict), timeStep, normalizerFile, isPredict)
+    return toDataSet(parseCSVtoMatrixObject(files, isPredict), timeStep, isPredict)
 }
 
-fun toDataSet(dataList: Map<String, ArrayList<ArrayList<ArrayList<Double>>>>, timeStep: Int, normalizerFile: File, isPredict: Boolean): DataSet {
-
+fun toDataSet(dataList: Map<String, ArrayList<ArrayList<ArrayList<Double>>>>, timeStep: Int, isPredict: Boolean): DataSet {
     val inputSet: ArrayList<ArrayList<ArrayList<Double>>> = dataList.get("input")!!
-
     val outputSet: ArrayList<ArrayList<ArrayList<Double>>> = dataList.get("output")!!
     inputSet.forEachIndexed { index, element ->
-        inputSet[index] = normalizerDataSet(element, normalizerFile, false, isPredict)
+        inputSet[index] = normalizerDataSet(element, false, isPredict)
     }
     outputSet.forEachIndexed { index, element ->
-        outputSet[index] = normalizerDataSet(element, normalizerFile, true, isPredict)
+        outputSet[index] = normalizerDataSet(element, true, isPredict)
     }
 
-    val inputNd = Nd4j.create(intArrayOf(inputSet.size, intersectSize, inputSet.first().first().size), 'c')
-    val outputNd = Nd4j.create(intArrayOf(outputSet.size, intersectSize, outputSet.first().first().size), 'c')
+    val inputNd = Nd4j.create(intArrayOf(inputSet.size * intersectSize, inputSet.first().first().size), 'c')
+    val outputNd = Nd4j.create(intArrayOf(outputSet.size * intersectSize, outputSet.first().first().size), 'c')
 
     inputSet.forEachIndexed { indexArray, arrayList ->
         for (i in 0..intersectSize -1) {
             arrayList[i].forEachIndexed { indexSet, set ->
-                inputNd.putScalar(intArrayOf(indexArray, i, indexSet), set)
+                inputNd.putScalar(intArrayOf( i + indexArray * intersectSize, indexSet), set)
             }
         }
     }
     outputSet.forEachIndexed { indexArray, arrayList ->
         for (i in 0..intersectSize -1) {
             arrayList[i].forEachIndexed { indexSet, set ->
-                outputNd.putScalar(intArrayOf(indexArray, i, indexSet), set)
+                outputNd.putScalar(intArrayOf(i + indexArray * intersectSize, indexSet), set)
             }
         }
     }

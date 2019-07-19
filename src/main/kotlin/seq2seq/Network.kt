@@ -1,16 +1,14 @@
 package seq2seq
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
-import org.deeplearning4j.nn.conf.BackpropType;
-import org.deeplearning4j.nn.conf.GradientNormalization;
-import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.*
 
 import org.deeplearning4j.nn.conf.inputs.InputType;
 import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
-import org.deeplearning4j.nn.conf.ConvolutionMode
 import org.deeplearning4j.nn.conf.layers.*
 import org.deeplearning4j.nn.conf.preprocessor.CnnToRnnPreProcessor
 import org.deeplearning4j.nn.conf.preprocessor.RnnToCnnPreProcessor
+import org.deeplearning4j.nn.weights.WeightInit
 
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.learning.config.Adam
@@ -20,25 +18,31 @@ import seq2seq.data.intersectSize
 
 fun buildLSTMNetwork(learningRate: Double, lstmLayer: Int): MultiLayerNetwork {
     val conf = NeuralNetConfiguration.Builder()
-        .seed(123456)
+        .seed(123)
         .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
         .updater(Adam(learningRate))
         .list()
-        .layer(0, LSTM.Builder()
-            .nIn(intersectSize)
-            .nOut(lstmLayer)
+        .layer(0, DenseLayer.Builder()
+            .nIn(6)
+            .nOut(128)
+            .weightInit(WeightInit.XAVIER)
             .activation(Activation.TANH)
-            .build()
-        )
+            .build())
         .layer(1, LSTM.Builder()
-            .nIn(lstmLayer)
+            .nIn(128)
             .nOut(lstmLayer)
             .activation(Activation.TANH)
             .build()
         )
-        .layer(2, RnnOutputLayer.Builder()
+//        .layer(2, LSTM.Builder()
+//            .nIn(lstmLayer)
+//            .nOut(lstmLayer)
+//            .activation(Activation.TANH)
+//            .build()
+//        )
+        .layer(2, OutputLayer.Builder()
             .nIn(lstmLayer)
-            .nOut(intersectSize)
+            .nOut(1)
             .activation(Activation.TANH)
             .lossFunction(LossFunctions.LossFunction.SQUARED_LOSS)
             .build()
