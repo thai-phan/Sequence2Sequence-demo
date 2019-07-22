@@ -74,7 +74,7 @@ fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean): Map<String, A
                     if (indexItem in 4..9) {
                         inputList.add(item.toDouble())
                     }
-                    if (indexItem == 10) {
+                    if (indexItem in 5..10) {
                         outputList.add(item.toDouble())
                     }
                 }

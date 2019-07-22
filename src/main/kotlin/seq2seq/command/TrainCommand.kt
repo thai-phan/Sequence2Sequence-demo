@@ -93,39 +93,34 @@ class TrainCommand: Runnable {
         dataNormalized.save(outputNormalizer)
         val eval = RegressionEvaluation()
 
-        val total: List<List<Double>> = listOf()
+        val total: MutableList<Double> = mutableListOf()
         for (testBatch in testSet) {
             model.rnnClearPreviousState()
             val output = model.rnnTimeStep(testBatch.features)
 //            val result = ((output as Iterable<*>).first() as BaseNDArray).getColumn((ts -1).toLong()).toDoubleVector()
-//            val result = ((output as Iterable<*>).first() as BaseNDArray).toDoubleVector()
+
+//            val result = ((output as Iterable<*>) as BaseNDArray).getColumn((ts -1).toLong()).toDoubleVector()
             val result = output.toDoubleVector()
-//            total.plus(result.toList())
+
+            total.addAll(result.toMutableList())
 
             eval.eval(output, testBatch.labels)
         }
         println(eval.stats())
-//        OutputStreamWriter(FileOutputStream("trainOutput.csv")).use {
-//            total.forEachIndexed {
-//                i, list ->
-//                    list.forEachIndexed { index, d ->
-//                        val value: Double
-//                        if (d < 0) {
-//                            value = -d
-//                        } else {
-//                            value = d
-//                        }
-//                        it.write((value.times(dataNormalized.stdArray.last())).plus(dataNormalized.mean.last()).toString())
-//                        it.write("\n")
-//
-//                    }
-//            }
-//            it.flush()
-//        }
+        OutputStreamWriter(FileOutputStream("trainOutput.csv")).use {
+            total.forEachIndexed { index, d ->
+                val value: Double
+                if (d < 0) {
+                    value = -d
+                } else {
+                    value = d
+                }
+                it.write((value.times(dataNormalized.stdArray.first())).plus(dataNormalized.mean.first()).toString())
+                it.write("\n")
 
-//                it.write((result.times(dataNormalized.stdArray.last())).plus(dataNormalized.mean.last()).toString())
-//                it.write("\n")
-//                it.flush()
+                it.flush()
+            }
+        }
 
         val a = File("stat.csv")
         a.writeText(eval.stats())

@@ -62,16 +62,10 @@ class PredictCommand: Runnable {
             }
         }
 
-        val intersectArray = getIntersetPredictList().toTypedArray()
+//        val intersectArray = getIntersetPredictList().toTypedArray()
         OutputStreamWriter(FileOutputStream(outputFile)).use {
             result.forEachIndexed { index, d ->
-                var value = 0.0
-                if (d < 0) {
-                    value = -d
-                } else {
-                    value = d
-                }
-                it.write(locationFile[0][index][0] + "|" + locationFile[0][index][1] + "|" + (value.times(normalizer.stdArray.last())).plus(normalizer.mean.last()).toString())
+                it.write(locationFile[0][index][0] + "|" + locationFile[0][index][1] + "|" + (d.times(normalizer.stdArray.last())).plus(normalizer.mean.last()).toString())
                 it.write("\n")
                 it.flush()
             }
