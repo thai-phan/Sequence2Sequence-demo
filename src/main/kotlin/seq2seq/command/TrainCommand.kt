@@ -1,29 +1,13 @@
 package seq2seq.command
 
-import org.bytedeco.opencv.opencv_text.DoubleVector
 import kotlin.math.roundToInt
 import org.nd4j.evaluation.regression.RegressionEvaluation
 
 import picocli.CommandLine
 import picocli.CommandLine.*
 
-import seq2seq.data.loadDataFromFolder
-import seq2seq.data.restoreDataNormalizer
-import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
-import org.nd4j.linalg.api.ndarray.BaseNDArray
-import seq2seq.data.DataNormalizer
-import seq2seq.data.dataNormalized
+import seq2seq.data.*
 import java.io.*
-
-private var intersectList: MutableSet<ArrayList<String>> = mutableSetOf();
-
-fun setIntersetList(list: MutableSet<ArrayList<String>>) {
-    intersectList = list
-}
-
-fun getIntersetList(): MutableSet<ArrayList<String>> {
-    return intersectList
-}
 
 
 
@@ -49,7 +33,7 @@ class TrainCommand: Runnable {
     private var inputNormalizer: File? = null
 
     @Option(names = ["-learningRate"], description = ["learning Rate"])
-    private var learningRate: Double = 0.01
+    private var learningRate: Double = 0.001
 
     @Option(names = ["-testRatio"], description = ["ratio to split test and train"], required = false)
     private var testRatio: Double = 0.05
@@ -61,7 +45,7 @@ class TrainCommand: Runnable {
     private var batchSize: Int = 150
     //
     @Option(names = ["-miniBatchSize"], description = ["Mini Batch size"], required = false)
-    private var miniBatchSize: Int = 150
+    private var miniBatchSize: Int = 50
 
     @Option(names = ["-fullyConnLayer"], description = ["Fully Connected Layer"], required = false)
     private var fullyConnectedLayer = 128
@@ -76,12 +60,16 @@ class TrainCommand: Runnable {
     private lateinit var outputNormalizer: File
 
     override fun run() {
-        val dataset = loadDataFromFolder(inputDirectory, ts, false)
-        val listMiniBatch = dataset.batchBy(miniBatchSize)
-        val trainSet = listMiniBatch.subList(0, (listMiniBatch.size * (1-testRatio)).roundToInt())
-        val testSet = listMiniBatch.subList((listMiniBatch.size * (1-testRatio)).roundToInt(), listMiniBatch.size)
+        val fileList = loadDataFromFolder(inputDirectory)
+        val trainFiles = fileList.subList(0, (fileList.size * (1-testRatio)).roundToInt())
+        val testFiles = fileList.subList((fileList.size * (1-testRatio)).roundToInt(), fileList.size)
+        println("Number of train files with test ratio " + testRatio + " : " + trainFiles.size)
+        println("Number of test files with test ratio " + testRatio + " : " + testFiles.size)
 
-        val model = seq2seq.buildLSTMNetwork(learningRate, lstmHiddenLayer)
+        val trainDataSet = loadDataSetFromFiles(trainFiles, false)
+        val testDataSet = loadDataSetFromFiles(testFiles, true)
+        val trainSet = trainDataSet.batchBy(miniBatchSize)
+        val model = seq2seq.buildLSTMNetwork(learningRate, lstmHiddenLayer, fullyConnectedLayer)
 
         for (i in 1..epoch) {
             for (trainMiniBatch in trainSet) {
@@ -91,38 +79,25 @@ class TrainCommand: Runnable {
         }
         model.save(outputModel)
         dataNormalized.save(outputNormalizer)
-        val eval = RegressionEvaluation()
 
-        val total: MutableList<Double> = mutableListOf()
-        for (testBatch in testSet) {
-            model.rnnClearPreviousState()
-            val output = model.rnnTimeStep(testBatch.features)
-//            val result = ((output as Iterable<*>).first() as BaseNDArray).getColumn((ts -1).toLong()).toDoubleVector()
-
-//            val result = ((output as Iterable<*>) as BaseNDArray).getColumn((ts -1).toLong()).toDoubleVector()
+        if (testFiles.isNotEmpty()) {
+            val eval = RegressionEvaluation()
+            val output = model.rnnTimeStep(testDataSet.features)
             val result = output.toDoubleVector()
-
-            total.addAll(result.toMutableList())
-
-            eval.eval(output, testBatch.labels)
-        }
-        println(eval.stats())
-        OutputStreamWriter(FileOutputStream("trainOutput.csv")).use {
-            total.forEachIndexed { index, d ->
-                val value: Double
-                if (d < 0) {
-                    value = -d
-                } else {
-                    value = d
+            eval.eval(output, testDataSet.labels)
+            println(eval.stats())
+            OutputStreamWriter(FileOutputStream("trainOutput.csv")).use {
+                it.write("X|Y|Origin|Predict\n")
+                result.forEachIndexed { index, d ->
+                    val originData = locationFile.last()[index]
+                    it.write(originData[2] + "|" + originData[3] + "|" + originData[10] + "|"+ (d.times(dataNormalized.stdArray.last())).plus(dataNormalized.meanArray.last()).toString())
+                    it.write("\n")
+                    it.flush()
                 }
-                it.write((value.times(dataNormalized.stdArray.first())).plus(dataNormalized.mean.first()).toString())
-                it.write("\n")
-
-                it.flush()
             }
-        }
 
-        val a = File("stat.csv")
-        a.writeText(eval.stats())
+            val a = File("stat.csv")
+            a.writeText(eval.stats())
+        }
     }
 }

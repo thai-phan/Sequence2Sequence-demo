@@ -16,20 +16,20 @@ import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 import seq2seq.data.intersectSize
 
-fun buildLSTMNetwork(learningRate: Double, lstmLayer: Int): MultiLayerNetwork {
+fun buildLSTMNetwork(learningRate: Double, lstmLayer: Int, fullyConnectedLayer: Int): MultiLayerNetwork {
     val conf = NeuralNetConfiguration.Builder()
-        .seed(123)
+        .seed(12345)
         .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
         .updater(Adam(learningRate))
         .list()
         .layer(0, DenseLayer.Builder()
             .nIn(6)
-            .nOut(128)
+            .nOut(fullyConnectedLayer)
             .weightInit(WeightInit.XAVIER)
             .activation(Activation.TANH)
             .build())
         .layer(1, LSTM.Builder()
-            .nIn(128)
+            .nIn(fullyConnectedLayer)
             .nOut(lstmLayer)
             .activation(Activation.TANH)
             .build()
@@ -40,15 +40,13 @@ fun buildLSTMNetwork(learningRate: Double, lstmLayer: Int): MultiLayerNetwork {
 //            .activation(Activation.TANH)
 //            .build()
 //        )
-        .layer(2, RnnOutputLayer.Builder()
+        .layer(2, OutputLayer.Builder()
             .nIn(lstmLayer)
-            .nOut(6)
+            .nOut(1)
             .activation(Activation.TANH)
             .lossFunction(LossFunctions.LossFunction.SQUARED_LOSS)
             .build()
         )
-//        .inputPreProcessor(0, RnnToCnnPreProcessor(6, 6, 5))
-//        .inputPreProcessor(1, CnnToRnnPreProcessor(3, 3, cnnLayer1.toLong()))
 
     val net = MultiLayerNetwork(conf.build())
     net.init()

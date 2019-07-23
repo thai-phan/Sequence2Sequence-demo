@@ -1,31 +1,31 @@
 package seq2seq.data
 
 import org.nd4j.linalg.dataset.DataSet
-import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
-import org.nd4j.linalg.factory.Nd4j.ones
 import java.io.File
-import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 import org.deeplearning4j.clustering.util.SetUtils
-import seq2seq.command.getIntersetPredictList
-import seq2seq.command.setIntersetList
-import kotlin.collections.HashSet
-import java.util.TreeSet
+import org.nd4j.linalg.api.ndarray.INDArray
 
 var intersectSize = 0
+
 val locationFile = ArrayList<ArrayList<ArrayList<String>>>()
 
-fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean): Map<String, ArrayList<ArrayList<ArrayList<Double>>>> {
-    val parseMap = HashMap<String, ArrayList<ArrayList<ArrayList<Double>>>>()
-    val inputFile = ArrayList<ArrayList<ArrayList<Double>>>()
-    val outputFile = ArrayList<ArrayList<ArrayList<Double>>>()
+private var intersectList: MutableSet<ArrayList<String>> = mutableSetOf();
 
+fun setIntersetList(list: MutableSet<ArrayList<String>>) {
+    intersectList = list
+}
+
+fun getIntersetList(): MutableSet<ArrayList<String>> {
+    return intersectList
+}
+
+fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean): INDArray {
     var intersectList: MutableSet<ArrayList<String>> = mutableSetOf()
 
     if (isPredict) {
-        intersectList = getIntersetPredictList()
+        intersectList = getIntersetList()
         intersectSize = intersectList.size
     } else {
         val firstFile = files[0].bufferedReader()
@@ -52,103 +52,46 @@ fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean): Map<String, A
         setIntersetList(intersectList)
         intersectSize = intersectList.size
     }
-
-    for (file in files) {
+    val objectSize = 7
+    val dataNd = Nd4j.create(intArrayOf(files.size * intersectSize, objectSize), 'c')
+    var countIndexForDataNd = 0
+    files.forEachIndexed { indexFile, file ->
         val locationLists: ArrayList<ArrayList<String>> = ArrayList()
-        val inputLists = ArrayList<ArrayList<Double>>()
-        val outputLists = ArrayList<ArrayList<Double>>()
         val reader = file.bufferedReader()
         reader.readLine();
         val fileLines = reader.readLines().map {
             it.split("|")
         }
-        var count = 0
-        fileLines.forEachIndexed { indexLine, list ->
-            val locationList: ArrayList<String> = ArrayList()
-            val inputList: ArrayList<Double> = ArrayList()
-            val outputList: ArrayList<Double> = ArrayList()
-
+        fileLines.forEachIndexed { _, list ->
             if (intersectList.contains(arrayListOf(list[2], list[3]))) {
                 list.forEachIndexed { indexItem, item ->
-                    locationList.add(item)
-                    if (indexItem in 4..9) {
-                        inputList.add(item.toDouble())
-                    }
-                    if (indexItem in 5..10) {
-                        outputList.add(item.toDouble())
+                    if (indexItem in 4..10) {
+                        dataNd.putScalar(intArrayOf(countIndexForDataNd, indexItem-4), item.toDouble())
                     }
                 }
-                inputLists.add(inputList);
-                outputLists.add(outputList);
-                locationLists.add(locationList)
-            } else {
-                count = count + 1
+                countIndexForDataNd += 1
             }
-
         }
-//        println(count.toString() + "/" + inputLists.size + "/" + outputLists.size)
-
-        inputFile.add(inputLists)
-        outputFile.add(outputLists)
-        locationFile.add(locationLists)
+        if (isPredict) {
+            locationFile.add(locationLists)
+        }
     }
-
-//    val set = TreeSet(object : Comparator<ArrayList<Double>> {
-//        override fun compare(one: ArrayList<Double>, other: ArrayList<Double>): Int {
-//            return one[0].compareTo(other[0])
-//        }
-//    })
-
-    parseMap["input"] = inputFile;
-    parseMap["output"] = outputFile;
-    return parseMap;
+    return normalizeZScore(dataNd, isPredict);
 }
 
-//fun getLocationFromFile(files: List<File>) {
-//    val firstFile = files.get(0).bufferedReader()
-//    firstFile.readLine()
-//    val firstFileList = firstFile.readLines().map {
-//        it.split("|")
-//    }
-//    val intersectList: ArrayList<ArrayList<Double>> = arrayListOf()
-//    firstFileList.forEachIndexed { indexItem, list ->
-//        intersectList.add(arrayListOf(list[2].toDouble(), list[3].toDouble()))
-//    }
-//}
-
-fun loadDataFromFolder(location: File, timeStep: Int, isPredict: Boolean): DataSet  {
+fun loadDataFromFolder(location: File): List<File>  {
     val files = location.listFiles()
         .filter{ it.name.toLowerCase().endsWith(".csv") }
         .sortedBy { it.name }
-    return toDataSet(parseCSVtoMatrixObject(files, isPredict), timeStep, isPredict)
+    return files;
 }
 
-fun toDataSet(dataList: Map<String, ArrayList<ArrayList<ArrayList<Double>>>>, timeStep: Int, isPredict: Boolean): DataSet {
-    val inputSet: ArrayList<ArrayList<ArrayList<Double>>> = dataList.get("input")!!
-    val outputSet: ArrayList<ArrayList<ArrayList<Double>>> = dataList.get("output")!!
-    inputSet.forEachIndexed { index, element ->
-        inputSet[index] = normalizerDataSet(element, false, isPredict)
-    }
-    outputSet.forEachIndexed { index, element ->
-        outputSet[index] = normalizerDataSet(element, true, isPredict)
-    }
+fun loadDataSetFromFiles(files: List<File>, isPredict: Boolean): DataSet {
+    return splitFeatureAndLabel(parseCSVtoMatrixObject(files, isPredict))
+}
 
-    val inputNd = Nd4j.create(intArrayOf(inputSet.size * intersectSize, inputSet.first().first().size), 'c')
-    val outputNd = Nd4j.create(intArrayOf(outputSet.size * intersectSize, outputSet.first().first().size), 'c')
-
-    inputSet.forEachIndexed { indexArray, arrayList ->
-        for (i in 0..intersectSize -1) {
-            arrayList[i].forEachIndexed { indexSet, set ->
-                inputNd.putScalar(intArrayOf( i + indexArray * intersectSize, indexSet), set)
-            }
-        }
-    }
-    outputSet.forEachIndexed { indexArray, arrayList ->
-        for (i in 0..intersectSize -1) {
-            arrayList[i].forEachIndexed { indexSet, set ->
-                outputNd.putScalar(intArrayOf(i + indexArray * intersectSize, indexSet), set)
-            }
-        }
-    }
-    return DataSet(inputNd, outputNd)
+fun splitFeatureAndLabel(dataNd: INDArray): DataSet {
+    val featureNd = dataNd.getColumns(0,1,2,3,4,5)
+    val labelNd = dataNd.getColumn(6)
+    return DataSet(featureNd, labelNd)
 }
