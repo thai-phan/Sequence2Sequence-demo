@@ -19,14 +19,14 @@ data class DataNormalizer(val meanArray: List<Double> = listOf(),
 }
 
 fun normalizeZScore(dataNdArray: INDArray,
-                    isPredict: Boolean): INDArray {
+                    isPredict: Boolean, coefficient: Int): INDArray {
     if (isPredict) {
         val coefficientStd = dataNormalized.coefficientStd
         val meanArray = Nd4j.create(dataNormalized.meanArray)
         val stdArray = Nd4j.create(dataNormalized.stdArray)
         return dataNdArray.subRowVector(meanArray).divRowVector(stdArray).div(coefficientStd)
     } else {
-        val coefficientStd = 3
+        val coefficientStd = coefficient
         val meanArray = dataNdArray.mean(0)
         val stdArray = dataNdArray.std(0)
         dataNormalized = DataNormalizer(meanArray.toDoubleVector().toList(), stdArray.toDoubleVector().toList(), coefficientStd, getIntersetList())

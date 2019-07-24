@@ -6,8 +6,6 @@ import seq2seq.command.TrainCommand
 import picocli.CommandLine
 import picocli.CommandLine.*
 
-
-//  train -in ./data -e 10 -ts 6 airpollution.bin normalizer.bin
 @Command(subcommands = [TrainCommand::class, PredictCommand::class])
 class App {
     fun run(args: Array<String>) {

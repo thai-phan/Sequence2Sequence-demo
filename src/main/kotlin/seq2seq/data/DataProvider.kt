@@ -8,9 +8,7 @@ import org.deeplearning4j.clustering.util.SetUtils
 import org.nd4j.linalg.api.ndarray.INDArray
 
 var intersectSize = 0
-
-val locationFile = ArrayList<ArrayList<ArrayList<String>>>()
-
+val locationFile = ArrayList<ArrayList<String>>()
 private var intersectList: MutableSet<ArrayList<String>> = mutableSetOf();
 
 fun setIntersetList(list: MutableSet<ArrayList<String>>) {
@@ -21,7 +19,7 @@ fun getIntersetList(): MutableSet<ArrayList<String>> {
     return intersectList
 }
 
-fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean): INDArray {
+fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean, coefficient: Int): INDArray {
     var intersectList: MutableSet<ArrayList<String>> = mutableSetOf()
 
     if (isPredict) {
@@ -56,27 +54,28 @@ fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean): INDArray {
     val dataNd = Nd4j.create(intArrayOf(files.size * intersectSize, objectSize), 'c')
     var countIndexForDataNd = 0
     files.forEachIndexed { indexFile, file ->
-        val locationLists: ArrayList<ArrayList<String>> = ArrayList()
         val reader = file.bufferedReader()
         reader.readLine();
         val fileLines = reader.readLines().map {
             it.split("|")
         }
         fileLines.forEachIndexed { _, list ->
+            val locationList: ArrayList<String> = arrayListOf()
             if (intersectList.contains(arrayListOf(list[2], list[3]))) {
                 list.forEachIndexed { indexItem, item ->
+                    locationList.add(item)
                     if (indexItem in 4..10) {
                         dataNd.putScalar(intArrayOf(countIndexForDataNd, indexItem-4), item.toDouble())
                     }
                 }
                 countIndexForDataNd += 1
+                if (isPredict) {
+                    locationFile.add(locationList)
+                }
             }
         }
-        if (isPredict) {
-            locationFile.add(locationLists)
-        }
     }
-    return normalizeZScore(dataNd, isPredict);
+    return normalizeZScore(dataNd, isPredict, coefficient);
 }
 
 fun loadDataFromFolder(location: File): List<File>  {
@@ -86,12 +85,12 @@ fun loadDataFromFolder(location: File): List<File>  {
     return files;
 }
 
-fun loadDataSetFromFiles(files: List<File>, isPredict: Boolean): DataSet {
-    return splitFeatureAndLabel(parseCSVtoMatrixObject(files, isPredict))
+fun loadDataSetFromFiles(files: List<File>, isPredict: Boolean, coefficient: Int): DataSet {
+    return splitFeatureAndLabel(parseCSVtoMatrixObject(files, isPredict, coefficient))
 }
 
 fun splitFeatureAndLabel(dataNd: INDArray): DataSet {
     val featureNd = dataNd.getColumns(0,1,2,3,4,5)
-    val labelNd = dataNd.getColumn(6)
+    val labelNd = dataNd.getColumn(6).reshape(dataNd.getColumn(6).shape()[0], 1)
     return DataSet(featureNd, labelNd)
 }

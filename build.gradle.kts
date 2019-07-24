@@ -28,8 +28,8 @@ dependencies {
     compile("org.slf4j", "slf4j-jdk14", "1.7.25")
     compile("org.deeplearning4j", "deeplearning4j-core", dl4jVersion)
 
-    compile("org.nd4j", "nd4j-cuda-10.1-platform", dl4jVersion)
-//    compile("org.nd4j", "nd4j-native-platform", dl4jVersion)
+//    compile("org.nd4j", "nd4j-cuda-10.1-platform", dl4jVersion)
+    compile("org.nd4j", "nd4j-native-platform", dl4jVersion)
 
     compile("software.amazon.awssdk", "s3", "2.3.8")
     compile("com.natpryce", "konfig", "1.6.10.0")

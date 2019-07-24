@@ -9,19 +9,15 @@ import picocli.CommandLine.*
 import seq2seq.data.*
 import java.io.*
 
+//  train -in data -testRatio 0.06 -stat stat.csv -e 5 outModel.bin outNormalize.bin
 
-
-//  train -in data outModel.bin outNormalize.bin -testRatio 0.4
 @CommandLine.Command(name = "train", description = ["Train"])
 class TrainCommand: Runnable {
     @Option(names = ["--help"], usageHelp = true, description = ["display this help and exit"])
     var help: Boolean = false
 
     @Option(names = ["-e"], description = ["number of epoch to train"], required = false)
-    private var epoch: Int = 1
-
-    @Option(names = ["-ts"], description = ["number of time steps is used to predict one hour ahead"])
-    private var ts: Int = 6
+    private var epoch: Int = 1000
 
     @Option(names = ["-in"], description = ["input directory"], required = true)
     private lateinit var inputDirectory: File
@@ -41,9 +37,6 @@ class TrainCommand: Runnable {
     @Option(names = ["-lstmHiddenLayer"], description = ["Number of hidden neuron in LSTM layer"], required = false)
     private var lstmHiddenLayer: Int = 200
 
-    @Option(names = ["-batchSize"], description = ["Batch size"], required = false)
-    private var batchSize: Int = 150
-    //
     @Option(names = ["-miniBatchSize"], description = ["Mini Batch size"], required = false)
     private var miniBatchSize: Int = 50
 
@@ -52,6 +45,12 @@ class TrainCommand: Runnable {
 
     @Option(names = ["-monitor"], description = ["Enable graphical UI to monitor training process at http://localhost:9000"])
     private var monitor = false
+
+    @Option(names = ["-normalizeCoefficient"], description = ["Coefficient for standard deviation"])
+    private var coefficient: Int = 10
+
+    @Option(names = ["-stat"], description = ["results stats file"], required = true)
+    private lateinit var statFile: File
 
     @Parameters(index = "0", description = ["output location (folder) for trained model and normalizer model"])
     private lateinit var outputModel: File
@@ -66,8 +65,8 @@ class TrainCommand: Runnable {
         println("Number of train files with test ratio " + testRatio + " : " + trainFiles.size)
         println("Number of test files with test ratio " + testRatio + " : " + testFiles.size)
 
-        val trainDataSet = loadDataSetFromFiles(trainFiles, false)
-        val testDataSet = loadDataSetFromFiles(testFiles, true)
+        val trainDataSet = loadDataSetFromFiles(trainFiles, false, coefficient)
+        val testDataSet = loadDataSetFromFiles(testFiles, true, coefficient)
         val trainSet = trainDataSet.batchBy(miniBatchSize)
         val model = seq2seq.buildLSTMNetwork(learningRate, lstmHiddenLayer, fullyConnectedLayer)
 
@@ -88,16 +87,14 @@ class TrainCommand: Runnable {
             println(eval.stats())
             OutputStreamWriter(FileOutputStream("trainOutput.csv")).use {
                 it.write("X|Y|Origin|Predict\n")
-                result.forEachIndexed { index, d ->
-                    val originData = locationFile.last()[index]
-                    it.write(originData[2] + "|" + originData[3] + "|" + originData[10] + "|"+ (d.times(dataNormalized.stdArray.last())).plus(dataNormalized.meanArray.last()).toString())
+                locationFile.forEachIndexed { index, originData ->
+                    val d = result[index]
+                    it.write(originData[2] + "|" + originData[3] + "|" + originData[10] + "|"+ (d.times(dataNormalized.stdArray.last() * dataNormalized.coefficientStd)).plus(dataNormalized.meanArray.last()).toString())
                     it.write("\n")
                     it.flush()
                 }
             }
-
-            val a = File("stat.csv")
-            a.writeText(eval.stats())
+            statFile.writeText(eval.stats())
         }
     }
 }
