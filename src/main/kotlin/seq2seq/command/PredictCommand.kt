@@ -10,7 +10,7 @@ import picocli.CommandLine.*
 import seq2seq.data.*
 import java.io.IOException
 
-// predict -in dataIn -model outModel.bin -normalizer outNormalize.bin -stat stat_pre.csv result.csv
+// predict -in dataIn -model outModel.bin -normalizer outNormalize.bin -stat stat_pre.csv result_predict.csv
 @CommandLine.Command(name = "predict", description = ["Predict"])
 class PredictCommand: Runnable {
     @Option(names = ["-model"], description = ["Trained model which used to predict"], required = true)
@@ -38,7 +38,7 @@ class PredictCommand: Runnable {
         val eval = RegressionEvaluation()
         val result = indResult.toDoubleVector()
         eval.eval(indResult, dataset.labels)
-
+        println(eval.stats())
         if (outputFile.exists()) {
             outputFile.delete()
             try {
@@ -48,7 +48,7 @@ class PredictCommand: Runnable {
             }
         }
 
-        OutputStreamWriter(FileOutputStream("trainOutput.csv")).use {
+        OutputStreamWriter(FileOutputStream(outputFile)).use {
             it.write("X|Y|Origin|Predict\n")
             locationFile.forEachIndexed { index, originData ->
                 val d = result[index]

@@ -9,7 +9,7 @@ import picocli.CommandLine.*
 import seq2seq.data.*
 import java.io.*
 
-//  train -in data -testRatio 0.06 -stat stat.csv -e 5 outModel.bin outNormalize.bin
+//  train -in data -testRatio 0.06 -stat stat.csv -e 1 outModel.bin outNormalize.bin trainOutput.csv
 
 @CommandLine.Command(name = "train", description = ["Train"])
 class TrainCommand: Runnable {
@@ -58,6 +58,8 @@ class TrainCommand: Runnable {
     @Parameters(index = "1", description = ["output train data normalizer"])
     private lateinit var outputNormalizer: File
 
+    @Parameters(index = "2", description = ["output test data"])
+    private lateinit var outputTest: File
     override fun run() {
         val fileList = loadDataFromFolder(inputDirectory)
         val trainFiles = fileList.subList(0, (fileList.size * (1-testRatio)).roundToInt())
@@ -85,7 +87,7 @@ class TrainCommand: Runnable {
             val result = output.toDoubleVector()
             eval.eval(output, testDataSet.labels)
             println(eval.stats())
-            OutputStreamWriter(FileOutputStream("trainOutput.csv")).use {
+            OutputStreamWriter(FileOutputStream(outputTest)).use {
                 it.write("X|Y|Origin|Predict\n")
                 locationFile.forEachIndexed { index, originData ->
                     val d = result[index]
