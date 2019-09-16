@@ -28,8 +28,8 @@ dependencies {
     compile("org.slf4j", "slf4j-jdk14", "1.7.25")
     compile("org.deeplearning4j", "deeplearning4j-core", dl4jVersion)
 
-//    compile("org.nd4j", "nd4j-cuda-10.1-platform", dl4jVersion)
-    compile("org.nd4j", "nd4j-native-platform", dl4jVersion)
+    compile("org.nd4j", "nd4j-cuda-10.1-platform", dl4jVersion)
+//    compile("org.nd4j", "nd4j-native-platform", dl4jVersion)
 
     compile("software.amazon.awssdk", "s3", "2.3.8")
     compile("com.natpryce", "konfig", "1.6.10.0")
@@ -53,9 +53,18 @@ val fatJar = task("fatJar", type = Jar::class) {
     manifest {
         attributes["Main-Class"] = "seq2seq.AppKt"
     }
-    from(configurations.runtime.get().map { if (it.isDirectory) it else zipTree(it) })
+    from(configurations.runtime.map({ if (it.isDirectory) it else zipTree(it) }))
+//    from(configurations.runtime. ().map { if (it.isDirectory) it else zipTree(it) })
     with(tasks["jar"] as CopySpec)
 }
+//task fatJar(type: Jar) {
+//    manifest {
+//        attributes 'Main-Class': 'com.example.Main'
+//    }
+//    baseName = project.name + '-all'
+//    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+//    with jar
+//}
 tasks {
     "build" {
         dependsOn(fatJar)
