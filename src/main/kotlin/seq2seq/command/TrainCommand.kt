@@ -84,14 +84,18 @@ class TrainCommand: Runnable {
         if (testFiles.isNotEmpty()) {
             val eval = RegressionEvaluation()
             val output = model.rnnTimeStep(testDataSet.features)
-            val result = output.toDoubleVector()
-            eval.eval(output, testDataSet.labels)
+            val revertResult = output.mul(dataNormalized.stdArray.last() * dataNormalized.coefficientStd).add(dataNormalized.meanArray.last())
+            val result = revertResult.toDoubleVector()
+            val origin = testDataSet.labels.mul(dataNormalized.stdArray.last() * dataNormalized.coefficientStd).add(dataNormalized.meanArray.last())
+
+            eval.eval(revertResult, origin)
             println(eval.stats())
+
             OutputStreamWriter(FileOutputStream(outputTest)).use {
                 it.write("X|Y|Origin|Predict\n")
                 locationFile.forEachIndexed { index, originData ->
                     val d = result[index]
-                    it.write(originData[2] + "|" + originData[3] + "|" + originData[10] + "|"+ (d.times(dataNormalized.stdArray.last() * dataNormalized.coefficientStd)).plus(dataNormalized.meanArray.last()).toString())
+                    it.write(originData[2] + "|" + originData[3] + "|" + originData[10] + "|"+ d)
                     it.write("\n")
                     it.flush()
                 }

@@ -36,8 +36,10 @@ class PredictCommand: Runnable {
         val model = MultiLayerNetwork.load(inputModel, false)
         val indResult = model.rnnTimeStep(dataset.features)
         val eval = RegressionEvaluation()
-        val result = indResult.toDoubleVector()
-        eval.eval(indResult, dataset.labels)
+        val revertResult = indResult.mul(dataNormalized.stdArray.last() * dataNormalized.coefficientStd).add(dataNormalized.meanArray.last())
+        val result = revertResult.toDoubleVector()
+        val origin = dataset.labels.mul(dataNormalized.stdArray.last() * dataNormalized.coefficientStd).add(dataNormalized.meanArray.last())
+        eval.eval(revertResult, origin)
         println(eval.stats())
         if (outputFile.exists()) {
             outputFile.delete()
@@ -52,7 +54,7 @@ class PredictCommand: Runnable {
             it.write("X|Y|Origin|Predict\n")
             locationFile.forEachIndexed { index, originData ->
                 val d = result[index]
-                it.write(originData[2] + "|" + originData[3] + "|" + originData[10] + "|"+ (d.times(dataNormalized.stdArray.last() * dataNormalized.coefficientStd)).plus(dataNormalized.meanArray.last()).toString())
+                it.write(originData[2] + "|" + originData[3] + "|" + originData[10] + "|"+ "%.2f".format(d))
                 it.write("\n")
                 it.flush()
             }
