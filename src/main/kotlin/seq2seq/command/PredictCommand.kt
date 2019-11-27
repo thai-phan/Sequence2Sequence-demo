@@ -10,7 +10,7 @@ import picocli.CommandLine.*
 import seq2seq.data.*
 import java.io.IOException
 
-// predict -in dataIn -model outModel.bin -normalizer outNormalize.bin -stat stat_pre.csv result_predict.csv
+// predict -in dataIn -model outModel.bin -normalizer outNormalize.bin -stat stat_pre.csv result_predict.csv -columns mon,tus,wed,thu,fri,sat
 @CommandLine.Command(name = "predict", description = ["Predict"])
 class PredictCommand: Runnable {
     @Option(names = ["-model"], description = ["Trained model which used to predict"], required = true)
@@ -28,11 +28,16 @@ class PredictCommand: Runnable {
     @Parameters(index = "0", description = ["results output file"])
     private lateinit var outputFile: File
 
+    @Option(names = ["-columns"], description = ["Select columns' index which are used to predict, index starts from 0"], required = false)
+    private var columns: String = "mon,tus,wed,thu,fri,sat"
+
     override fun run() {
         dataNormalized = restoreDataNormalizer(inputNormalizer)
         setIntersetList(dataNormalized.list)
         val files = loadDataFromFolder(inputDirectory)
-        val dataset = loadDataSetFromFiles(files, true, dataNormalized.coefficientStd)
+        val columnList = columns.split(",")
+        println("Number of column use to predict: " + columnList.size)
+        val dataset = loadDataSetFromFiles(files, true, dataNormalized.coefficientStd, columnList)
         val model = MultiLayerNetwork.load(inputModel, false)
         val indResult = model.rnnTimeStep(dataset.features)
         val eval = RegressionEvaluation()

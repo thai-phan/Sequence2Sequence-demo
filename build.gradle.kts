@@ -36,7 +36,7 @@ dependencies {
     runtime("org.jetbrains.kotlin", "kotlin-stdlib-jdk8", "1.3.41")
     compile("jfree", "jfreechart", "1.0.13")
     compile("info.picocli", "picocli", "3.9.3")
-    compile("org.jetbrains.kotlin", "kotlin-runtime", "1.2.71")
+    compile("org.jetbrains.kotlin", "kotlin-stdlib", "1.3.60")
     compile("nl.dionsegijn", "konfetti", "1.1.2")
     compile(kotlin("stdlib-jdk8"))
 }

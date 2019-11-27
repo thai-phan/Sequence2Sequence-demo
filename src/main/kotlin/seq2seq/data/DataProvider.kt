@@ -19,7 +19,7 @@ fun getIntersetList(): MutableSet<ArrayList<String>> {
     return intersectList
 }
 
-fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean, coefficient: Int): INDArray {
+fun parseCSVtoINDArray(files: List<File>, isPredict: Boolean, coefficient: Int): INDArray {
     var intersectList: MutableSet<ArrayList<String>> = mutableSetOf()
 
     if (isPredict) {
@@ -53,7 +53,7 @@ fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean, coefficient: I
     val objectSize = 7
     val dataNd = Nd4j.create(intArrayOf(files.size * intersectSize, objectSize), 'c')
     var countIndexForDataNd = 0
-    files.forEachIndexed { indexFile, file ->
+    files.forEachIndexed { _, file ->
         val reader = file.bufferedReader()
         reader.readLine();
         val fileLines = reader.readLines().map {
@@ -79,18 +79,29 @@ fun parseCSVtoMatrixObject(files: List<File>, isPredict: Boolean, coefficient: I
 }
 
 fun loadDataFromFolder(location: File): List<File>  {
-    val files = location.listFiles()
-        .filter{ it.name.toLowerCase().endsWith(".csv") }
-        .sortedBy { it.name }
-    return files;
+    return location.listFiles()
+        .filter { it.name.toLowerCase().endsWith(".csv") }
+        .sortedBy { it.name };
 }
 
-fun loadDataSetFromFiles(files: List<File>, isPredict: Boolean, coefficient: Int): DataSet {
-    return splitFeatureAndLabel(parseCSVtoMatrixObject(files, isPredict, coefficient))
+fun loadDataSetFromFiles(files: List<File>, isPredict: Boolean, coefficient: Int, columnList: List<String>): DataSet {
+    return splitFeatureAndLabel(parseCSVtoINDArray(files, isPredict, coefficient), columnList)
 }
 
-fun splitFeatureAndLabel(dataNd: INDArray): DataSet {
-    val featureNd = dataNd.getColumns(0,1,2,3,4,5)
+fun splitFeatureAndLabel(dataNd: INDArray, columnList: List<String>): DataSet {
+    val listColNumber = arrayListOf<Int>()
+    for (col in columnList) {
+        when(col) {
+            "mon" -> listColNumber.add(0)
+            "tus" -> listColNumber.add(1)
+            "wed" -> listColNumber.add(2)
+            "thu" -> listColNumber.add(3)
+            "fri" -> listColNumber.add(4)
+            "sat" -> listColNumber.add(5)
+        }
+    }
+
+    val featureNd = dataNd.getColumns(*listColNumber.toIntArray())
     val labelNd = dataNd.getColumn(6).reshape(dataNd.getColumn(6).shape()[0], 1)
     return DataSet(featureNd, labelNd)
 }

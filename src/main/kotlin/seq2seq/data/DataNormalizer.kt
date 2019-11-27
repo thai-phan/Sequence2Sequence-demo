@@ -40,7 +40,3 @@ fun restoreDataNormalizer(inputFile: File): DataNormalizer {
     rd.close()
     return ret
 }
-
-fun revertNormalize() {
-
-}

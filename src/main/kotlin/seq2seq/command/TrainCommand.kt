@@ -9,7 +9,7 @@ import picocli.CommandLine.*
 import seq2seq.data.*
 import java.io.*
 
-//  train -in data -testRatio 0.06 -stat stat.csv -e 1 outModel.bin outNormalize.bin trainOutput.csv
+//  train -in data -testRatio 0.06 -stat stat.csv -e 1 outModel.bin outNormalize.bin trainOutput.csv -columns tus,wed,thu,fri,sat
 
 @CommandLine.Command(name = "train", description = ["Train"])
 class TrainCommand: Runnable {
@@ -43,6 +43,9 @@ class TrainCommand: Runnable {
     @Option(names = ["-fullyConnLayer"], description = ["Fully Connected Layer"], required = false)
     private var fullyConnectedLayer = 128
 
+    @Option(names = ["-columns"], description = ["Select columns' index which are used to predict, index starts from 0"], required = false)
+    private var columns: String = "mon,tus,wed,thu,fri,sat"
+
     @Option(names = ["-monitor"], description = ["Enable graphical UI to monitor training process at http://localhost:9000"])
     private var monitor = false
 
@@ -66,11 +69,12 @@ class TrainCommand: Runnable {
         val testFiles = fileList.subList((fileList.size * (1-testRatio)).roundToInt(), fileList.size)
         println("Number of train files with test ratio " + testRatio + " : " + trainFiles.size)
         println("Number of test files with test ratio " + testRatio + " : " + testFiles.size)
-
-        val trainDataSet = loadDataSetFromFiles(trainFiles, false, coefficient)
-        val testDataSet = loadDataSetFromFiles(testFiles, true, coefficient)
+        val columnList = columns.split(",")
+        println("Number of column use to train: " + columnList.size)
+        val trainDataSet = loadDataSetFromFiles(trainFiles, false, coefficient, columnList)
+        val testDataSet = loadDataSetFromFiles(testFiles, true, coefficient, columnList)
         val trainSet = trainDataSet.batchBy(miniBatchSize)
-        val model = seq2seq.buildLSTMNetwork(learningRate, lstmHiddenLayer, fullyConnectedLayer)
+        val model = seq2seq.buildLSTMNetwork(learningRate, lstmHiddenLayer, fullyConnectedLayer, columnList.size)
 
         for (i in 1..epoch) {
             for (trainMiniBatch in trainSet) {

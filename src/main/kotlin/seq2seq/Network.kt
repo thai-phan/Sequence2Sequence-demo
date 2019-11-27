@@ -10,14 +10,14 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
 
 
 
-fun buildLSTMNetwork(learningRate: Double, lstmLayer: Int, fullyConnectedLayer: Int): MultiLayerNetwork {
+fun buildLSTMNetwork(learningRate: Double, lstmLayer: Int, fullyConnectedLayer: Int, featureSize: Int): MultiLayerNetwork {
     val networkConfig = NeuralNetConfiguration.Builder()
         .seed(12345)
         .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
         .updater(Adam(learningRate))
         .list()
         .layer(0, DenseLayer.Builder()
-            .nIn(6)
+            .nIn(featureSize)
             .nOut(fullyConnectedLayer)
             .weightInit(WeightInit.XAVIER)
             .activation(Activation.TANH)
