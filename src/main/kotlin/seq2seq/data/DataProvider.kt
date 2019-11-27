@@ -92,12 +92,12 @@ fun splitFeatureAndLabel(dataNd: INDArray, columnList: List<String>): DataSet {
     val listColNumber = arrayListOf<Int>()
     for (col in columnList) {
         when(col) {
-            "mon" -> listColNumber.add(0)
-            "tus" -> listColNumber.add(1)
-            "wed" -> listColNumber.add(2)
-            "thu" -> listColNumber.add(3)
-            "fri" -> listColNumber.add(4)
-            "sat" -> listColNumber.add(5)
+            "mon", "FLOW_POP_CNT_MON" -> listColNumber.add(0)
+            "tus", "FLOW_POP_CNT_TUS" -> listColNumber.add(1)
+            "wed", "FLOW_POP_CNT_WED" -> listColNumber.add(2)
+            "thu", "FLOW_POP_CNT_THU" -> listColNumber.add(3)
+            "fri", "FLOW_POP_CNT_FRI" -> listColNumber.add(4)
+            "sat", "FLOW_POP_CNT_SAT" -> listColNumber.add(5)
         }
     }
 

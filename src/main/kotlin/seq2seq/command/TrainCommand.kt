@@ -9,7 +9,7 @@ import picocli.CommandLine.*
 import seq2seq.data.*
 import java.io.*
 
-//  train -in data -testRatio 0.06 -stat stat.csv -e 1 outModel.bin outNormalize.bin trainOutput.csv -columns tus,wed,thu,fri,sat
+//  train -in data -testRatio 0.06 -stat stat.csv -e 1 outModel.bin outNormalize.bin trainOutput.csv -columns FLOW_POP_CNT_MON,FLOW_POP_CNT_TUS,FLOW_POP_CNT_WED,FLOW_POP_CNT_THU,FLOW_POP_CNT_FRI,FLOW_POP_CNT_SAT
 
 @CommandLine.Command(name = "train", description = ["Train"])
 class TrainCommand: Runnable {

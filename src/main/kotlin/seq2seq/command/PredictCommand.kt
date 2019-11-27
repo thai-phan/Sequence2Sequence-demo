@@ -10,7 +10,7 @@ import picocli.CommandLine.*
 import seq2seq.data.*
 import java.io.IOException
 
-// predict -in dataIn -model outModel.bin -normalizer outNormalize.bin -stat stat_pre.csv result_predict.csv -columns mon,tus,wed,thu,fri,sat
+// predict -in dataIn -model outModel.bin -normalizer outNormalize.bin -stat stat_pre.csv result_predict.csv -columns FLOW_POP_CNT_MON,FLOW_POP_CNT_TUS,FLOW_POP_CNT_WED,FLOW_POP_CNT_THU,FLOW_POP_CNT_FRI,FLOW_POP_CNT_SAT
 @CommandLine.Command(name = "predict", description = ["Predict"])
 class PredictCommand: Runnable {
     @Option(names = ["-model"], description = ["Trained model which used to predict"], required = true)
